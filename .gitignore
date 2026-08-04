@@ -1,0 +1,21 @@
+# Model checkpoints — large binary files (up to 250MB+ each), regenerate by rerunning
+# the notebook. Two of these exceed GitHub's 100MB per-file limit, so this folder is
+# excluded outright, not just by extension.
+*.keras
+*.h5
+model_weights/
+
+# Dataset — downloaded via kagglehub at runtime, never commit raw data
+data/
+*.zip
+
+# Jupyter / Colab
+.ipynb_checkpoints/
+.config/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
