@@ -53,8 +53,7 @@ Per-model training/validation accuracy and loss curves are in
 [`architecture_diagrams/`](architecture_diagrams/).
 
 Trained model weights (`.keras` checkpoints) are not included in this repo — several
-exceed GitHub's 100MB file limit. [Add a Hugging Face Hub / Drive link here if you upload
-them separately.]
+exceed GitHub's 100MB file limit. Trained weights are hosted on the [Hugging Face Hub](https://huggingface.co/idk100/intel-image-classification-cnn-comparison).
 
 ## Discussion
 
