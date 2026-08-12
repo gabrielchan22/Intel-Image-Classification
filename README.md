@@ -57,7 +57,7 @@ exceed GitHub's 100MB file limit. Trained weights are hosted on the [Hugging Fac
 
 ## Discussion
 
-**Architectural sophistication alone didn't help — at this dataset scale, it mostly hurt.**
+**Architectural sophistication alone didn't help, in fact, at this dataset scale, it mostly hampered model performance.**
 Every from-scratch model that added a "best practice" technique without also increasing
 depth or adding regularization ended up at or below the plain baseline. Residual
 connections, in particular, consistently underperformed (0.827, the weakest result in the
@@ -79,7 +79,7 @@ metrics were computed against an inaccurate normalization statistic. Lowering
 `momentum` to `0.9` (a 10% adaptation rate per step instead of 1%) helped to reduce this impact,
 validation curves became smooth and well-behaved across every subsequent model. 
 
-**Going deep enough finally let complexity pay off — but only once regularization came
+**Going deep enough finally let complexity pay off, but only once regularization came
 with it.** The first attempt at a full Xception-style network (entry/middle/exit flow, no
 dropout, no augmentation) reached 97% training accuracy while validation accuracy stalled
 around 82-86% — the clearest overfitting signature in the whole project. The
@@ -88,7 +88,7 @@ around 82-86% — the clearest overfitting signature in the whole project. The
 problem was clear: this network finally had *enough capacity* to fit the task well, but
 nothing was constraining how that capacity got used. Adding dropout and data augmentation
 in a second, deeper version (8 middle-flow blocks instead of 4, proper pre-activation
-ordering) resolved that — training and validation accuracy tracked much more closely, and
+ordering) resolved that, training and validation accuracy tracked much more closely, and
 this was the first from-scratch model to clearly and consistently beat the baseline
 (0.870). 
 
