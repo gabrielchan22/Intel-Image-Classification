@@ -5,7 +5,7 @@ residual connections, depthwise-separable convolutions, and a from-scratch Xcept
 network — followed by transfer learning with a pretrained Xception-41 backbone, all
 evaluated on the same 6-class scene classification task.
 
-The goal wasn't to chase the highest possible accuracy. It was to isolate *why* each
+The goal wasn't to chase the highest possible accuracy. It was to isolate and examine *why* each
 technique helps (or doesn't), on a modest-sized dataset that's smaller and less complex
 than what most of these techniques were originally designed for.
 
@@ -70,18 +70,14 @@ showed. Depthwise-separable convolutions partially recovered some of that lost g
 (0.840), consistent with their actual selling point: parameter *efficiency*, not
 representational power.
 
-**A subtle batch normalization bug shaped a lot of this project, and is worth documenting
-explicitly.** Early runs of the batchnorm-augmented models showed wildly unstable
+**Early testing with batch normalization shaped momentum usage.** Initial runs of the batchnorm-augmented models showed wildly unstable
 validation metrics — validation loss spiking as high as 3× training loss between adjacent
 epochs, with no clear improving trend. The cause was BatchNormalization's default
 `momentum=0.99`: at that setting, the running mean/variance estimate used at evaluation
-time updates far too slowly to converge within a normal-length training run, so validation
-metrics were computed against a stale, inaccurate normalization statistic. Lowering
-`momentum` to `0.9` (a 10% adaptation rate per step instead of 1%) fixed this cleanly —
-validation curves became smooth and well-behaved across every subsequent model. This is a
-good example of a hyperparameter that's easy to overlook (it's rarely touched in
-introductory material) but has an outsized effect on training stability specifically for
-smaller-to-medium datasets like this one.
+time updates far too slowly to converge within a normal-length training run, thus validation
+metrics were computed against an inaccurate normalization statistic. Lowering
+`momentum` to `0.9` (a 10% adaptation rate per step instead of 1%) helped to reduce this impact,
+validation curves became smooth and well-behaved across every subsequent model. 
 
 **Going deep enough finally let complexity pay off — but only once regularization came
 with it.** The first attempt at a full Xception-style network (entry/middle/exit flow, no
@@ -94,21 +90,19 @@ nothing was constraining how that capacity got used. Adding dropout and data aug
 in a second, deeper version (8 middle-flow blocks instead of 4, proper pre-activation
 ordering) resolved that — training and validation accuracy tracked much more closely, and
 this was the first from-scratch model to clearly and consistently beat the baseline
-(0.870). The lesson: depth and regularization are a package deal, not independent levers.
+(0.870). 
 
-**Transfer learning was the single biggest driver of performance in the entire project.**
-Even with the backbone completely frozen — only a small classification head trained from
-scratch — the pretrained Xception-41 model (0.892) outperformed every from-scratch
-architecture, including the deep, well-regularized one. This is a meaningful result: it
-suggests the ~85-87% ceiling the from-scratch models kept converging to wasn't primarily a
+**Transfer learning remarkedly boosted performance in the entire project.**
+Even with the backbone completely frozen with only a small classification head trained from
+scratch, the pretrained Xception-41 model (0.892) outperformed every from-scratch
+architecture, including the deep, well-regularized one. This could 
+suggest that the ~85-87% ceiling that the from-scratch models kept converging to wasn't primarily a
 capacity or architecture problem — it was a *data* problem. ~14,000 training images spread
 across 6 classes just isn't enough for a randomly-initialized network to learn features as
 good as what ImageNet's ~1.4 million images already baked into this backbone. Fine-tuning
 the backbone's later layers (with BatchNorm layers deliberately kept frozen, and a 100×
 lower learning rate to avoid destroying the pretrained weights) pushed this further to
-0.910 — the best result of the project — confirming that adapting general-purpose features
-to this specific task, rather than relying on frozen general features alone, extracts real
-additional value once the foundation is already strong.
+0.910 — the best result of the project.
 
 **Fine-tuning converged almost immediately — and then quietly overfit for 12 more epochs.**
 Looking at the fine-tuning run's loss curve, validation loss reaches its lowest point
@@ -123,11 +117,9 @@ knowing given fine-tuning was the slowest stage in the whole project per epoch.
 **Overall takeaway:** on a dataset this size, individual architectural techniques from the
 CNN literature (batchnorm, residuals, separable convolutions) don't automatically improve
 results just because they're "best practices" — several of them measurably hurt when
-applied without enough depth or countervailing regularization. What actually moved the
+applied without enough depth or regularization. What actually moved the
 needle was either (a) combining sufficient depth *with* regularization, or (b) sidestepping
-the data-scarcity problem entirely via transfer learning. The project's main lesson isn't
-about any one technique — it's that architectural choices need to be evaluated relative to
-dataset scale, not applied by default.
+the data-scarcity problem entirely via transfer learning.
 
 ## Limitations & Future Work
 
@@ -138,12 +130,14 @@ dataset scale, not applied by default.
 - The five from-scratch stages train at 150×150 resolution; the transfer learning stages
   use 299×299 (matching the pretrained backbone's native resolution). This is a deliberate,
   documented choice, but it means the transfer learning comparison isn't perfectly
-  apples-to-apples with the from-scratch stages.
+  comparable with the from-scratch stages.
 - Fine-tuning unfroze the entire backbone (aside from BatchNorm layers). Unfreezing only
   the last few blocks is a common alternative that may reduce overfitting risk further and
   would be worth comparing.
 - A PyTorch reimplementation of the best-performing architecture would be a natural
   extension, both as a learning exercise and to sanity-check results across frameworks.
+- Using a larger dataset would be another logical next step to check how it performs against these
+  sequential models and to evaluate the consecutive architecture additions on model performance more in-depth.
 
 ## Repository Structure
 
@@ -163,9 +157,8 @@ dataset scale, not applied by default.
 
 1. Clone the repo and install dependencies: `pip install -r requirements.txt`
 2. Open `Intel_Image_Classification_Final.ipynb` in Jupyter or Google Colab (a T4 GPU
-   or better is strongly recommended — several stages, especially the transfer learning
-   models, are impractically slow on CPU).
-3. Run the Kaggle authentication cell and follow the interactive login prompt (see the
-   note in the notebook — no API key should ever be hardcoded).
+   or better is strongly recommended as several stages, especially the transfer learning
+   models, are quite slow on CPU).
+3. Run the Kaggle authentication cell and follow the interactive login prompt.
 4. Run all cells top to bottom. Each stage trains, plots its curves, and evaluates on the
    test set automatically.
