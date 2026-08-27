@@ -82,11 +82,10 @@ validation curves became smooth and well-behaved across every subsequent model.
 **Going deep enough finally let complexity pay off, but only once regularization came
 with it.** The first attempt at a full Xception-style network (entry/middle/exit flow, no
 dropout, no augmentation) reached 97% training accuracy while validation accuracy stalled
-around 82-86% — the clearest overfitting signature in the whole project. The
-`ModelCheckpoint` callback caught this and saved an early, still-reasonable checkpoint
+around 82-86% — overfitting. The `ModelCheckpoint` callback caught this and saved an early, still-reasonable checkpoint
 (0.828 test accuracy) rather than the badly overfit final weights, but the underlying
-problem was clear: this network finally had *enough capacity* to fit the task well, but
-nothing was constraining how that capacity got used. Adding dropout and data augmentation
+problem was clear: this network finally had *enough capacity* to fit the task well, but it was becoming too
+complex for the problem at hand and can't generalize well. Adding dropout and data augmentation
 in a second, deeper version (8 middle-flow blocks instead of 4, proper pre-activation
 ordering) resolved that, training and validation accuracy tracked much more closely, and
 this was the first from-scratch model to clearly and consistently beat the baseline
@@ -104,12 +103,11 @@ the backbone's later layers (with BatchNorm layers deliberately kept frozen, and
 lower learning rate to avoid destroying the pretrained weights) pushed this further to
 0.910 — the best result of the project.
 
-**Fine-tuning converged almost immediately — and then quietly overfit for 12 more epochs.**
+**Fine-tuning converged almost immediately — and then overfit for 12 more epochs.**
 Looking at the fine-tuning run's loss curve, validation loss reaches its lowest point
 around epoch 2-3, while training loss keeps collapsing toward zero all the way through
 epoch 15. `ModelCheckpoint` correctly saved that early best point rather than the final
-weights, which is exactly why the reported result (0.910) is trustworthy — but it also
-means roughly 12 of the 15 fine-tuning epochs were pure wasted compute, actively pushing
+weights. However it also means roughly 12 of the 15 fine-tuning epochs were pure wasted compute, actively pushing
 the model toward overfitting rather than improving it. In hindsight, 3-5 epochs would
 likely have reached the same result in a fraction of the training time, which is worth
 knowing given fine-tuning was the slowest stage in the whole project per epoch.
@@ -117,8 +115,8 @@ knowing given fine-tuning was the slowest stage in the whole project per epoch.
 **Overall takeaway:** on a dataset this size, individual architectural techniques from the
 CNN literature (batchnorm, residuals, separable convolutions) don't automatically improve
 results just because they're "best practices" — several of them measurably hurt when
-applied without enough depth or regularization. What actually moved the
-needle was either (a) combining sufficient depth *with* regularization, or (b) sidestepping
+applied without enough depth or regularization. What actually helped
+was either (a) combining sufficient depth *with* regularization, or (b) sidestepping
 the data-scarcity problem entirely via transfer learning.
 
 ## Limitations & Future Work
@@ -128,9 +126,7 @@ the data-scarcity problem entirely via transfer learning.
   underperforming architectures (residual connections in particular) would close the gap
   given more epochs, a learning rate schedule, or a larger dataset.
 - The five from-scratch stages train at 150×150 resolution; the transfer learning stages
-  use 299×299 (matching the pretrained backbone's native resolution). This is a deliberate,
-  documented choice, but it means the transfer learning comparison isn't perfectly
-  comparable with the from-scratch stages.
+  use 299×299 (matching the pretrained backbone's native resolution). This is a deliberate choice, but it means the transfer learning comparison isn't perfectly comparable with the from-scratch stages.
 - Fine-tuning unfroze the entire backbone (aside from BatchNorm layers). Unfreezing only
   the last few blocks is a common alternative that may reduce overfitting risk further and
   would be worth comparing.
